@@ -1,0 +1,99 @@
+---
+title: "Exercise 4"
+author: "Carilli"
+date: '`r format(Sys.Date(), "%Y-%B-%d")`'
+output: 
+  html_document:
+    theme: cerulean
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA, warning = FALSE, message = FALSE,
+                      options(digits = 3, scipen = 999))
+require(tidyverse)
+require(readr)
+require(janitor)
+require(broom)
+require(ggthemes)
+require(magrittr)
+require(kableExtra)
+```
+
+```{r data}
+divorce_men <- read_csv("DivorceMen.csv") %>% 
+  clean_names(case = "snake")
+divorce_women <- read_csv("DivorceWomen.csv") %>% 
+  clean_names(case = "snake")
+divorce <- divorce_men %>% 
+  bind_rows(divorce_women)
+```
+
+### (a)
+
+```{r part_a}
+divorce %>% 
+  ggplot(aes(x = gender_hours, y = divorce_rate, color = as.factor(male))) + 
+  geom_point() +
+  xlab("Yearly labor hours for gender") +
+  ylab("Divorce rate per thousand") +
+  scale_color_discrete(labels = c("Women", "Men")) +
+  facet_grid(~ as.factor(male), scales = "free") + 
+  theme(legend.title = element_blank(), 
+        strip.text.x = element_blank())
+```
+
+
+### (b)
+
+```{r part_b}
+# estimate the equation for men
+
+divorce_men %$% 
+  lm(divorce_rate ~ gender_hours) %>% 
+  tidy() %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% 
+  # first and fifth columns blank span title over middle 3 columns
+  add_header_above(c(" ", "Regression Results for Men" = 3, " "))
+
+# estimate the equation for women
+
+divorce_women %$% 
+  lm(divorce_rate ~ gender_hours) %>% 
+  tidy() %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% 
+  # first and fifth columns blank span title over middle 3 columns
+  add_header_above(c(" ", "Regression Results for Women" = 3, " ")) 
+```
+
+### (c)
+
+```{r part_c}
+divorce_men %$% 
+  lm(divorce_rate ~ gender_hours) %>% 
+  augment() %>%
+  mutate(country = divorce_men$country) %>%
+  filter(country == "Germany") %>% 
+  select(.fitted, .resid) %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% 
+  add_header_above(c("German Men" = 2))
+```
+
+### (d)
+
+```{r part_d}
+divorce_women %$% 
+  lm(divorce_rate ~ gender_hours) %>% 
+  augment() %>%
+  mutate(country = divorce_women$country) %>%
+  filter(country == "Spain") %>% 
+  select(.fitted, .resid) %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% 
+  add_header_above(c("Spanish Women" = 2))
+```
+
+

@@ -1,0 +1,102 @@
+---
+title: "Exercise 1"
+author: "Carilli"
+date: '`r format(Sys.Date(), "%Y-%B-%d")`'
+output: 
+  html_document:
+    theme: cerulean
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA, warning = FALSE, message = FALSE,
+                      options(digits = 3, scipen = 999))
+require(tidyverse)
+require(readr)
+require(janitor)
+require(broom)
+require(ggthemes)
+require(magrittr)
+require(ggrepel)
+require(kableExtra)
+```
+
+```{r data}
+pres_vote <- read_csv("PresVote.csv")
+```
+
+### (a)
+
+```{r part_a}
+pres_vote %>%
+  ggplot(aes(x = rdi4, y = vote, label = year)) +
+  geom_point() +
+  labs(x = "Percent Change in Income",
+       y = "Incumbent party's vote percent", 
+       caption = "Figure 3.1: Relationship between Income Growth and Vote fore the Incumbent President's Party.") +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme(axis.line = element_line(),
+        panel.background = element_blank()) +
+  geom_text_repel()
+```
+
+### (b)
+
+```{r part_b}
+pres_vote %$% 
+  lm(vote ~ rdi4) %>% 
+  tidy() %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
+### (c)
+
+```{r part_C}
+pres_vote %$% 
+  lm(vote ~ rdi4) %>% 
+  augment() %>% 
+  select(.fitted) %>% 
+  mutate(year = pres_vote$year) %>% 
+  filter(year %in% c(1996, 1972) )%>% 
+  select(year, .fitted) %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
+### (d)
+
+```{r}
+pres_vote %$% 
+  lm(vote ~ rdi4) %>% 
+  augment() %>% 
+  select(.resid) %>% 
+  mutate(year = pres_vote$year) %>% 
+  filter(year %in% c(1996, 1972)) %>% 
+  select(year, .resid) %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
+### (e) 
+
+```{r part_e}
+pres_vote %>% 
+  filter(reelection == 1) %$% 
+  lm(vote ~ rdi4) %>% 
+  tidy() %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
+### (f)
+
+```{r part_f}
+pres_vote %>% 
+  filter(reelection == 0) %$% 
+  lm(vote ~ rdi4) %>% 
+  tidy() %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+

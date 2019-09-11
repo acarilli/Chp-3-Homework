@@ -1,0 +1,83 @@
+---
+title: "Exercise 3"
+author: "Carilli"
+date: '`r format(Sys.Date(), "%Y-%B-%d")`'
+output: 
+  html_document:
+    theme: cerulean
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA, warning = FALSE, message = FALSE,
+                      options(digits = 3, scipen = 999))
+require(tidyverse)
+require(readr)
+require(janitor)
+require(broom)
+require(ggthemes)
+require(magrittr)
+require(kableExtra)
+```
+
+```{r data}
+height_wage <- read_csv("heightwage_british_males.csv")
+```
+
+### (a)
+
+```{r part_a}
+height_wage %$% 
+  lm(gwage33 ~ height33) %>% 
+  tidy() %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
+
+### (b)
+
+```{r part_b}
+height_wage %>% 
+  ggplot(aes(x = height33, y = gwage33, shape = cut(height33, c(0,40,80)))) + 
+  geom_point(aes(color = cut(gwage33, c(0, 400, 2500)))) + 
+  xlab("Height at age 33") + 
+  ylab("Wage at age 33") +
+  theme(legend.position = "none")
+```
+
+### (c)
+
+```{r part_c}
+height_wage %>%
+  filter(gwage33 < 400 & height33 > 40) %>% 
+  ggplot(aes(x = height33, y = gwage33)) + 
+  geom_point() + 
+  xlab("Height at age 33") + 
+  ylab("Wage at age 33") +
+  theme(legend.position = "none")
+```
+
+### (d)
+
+```{r part_d}
+height_wage %>%
+  filter(gwage33 < 400 & height33 > 40) %$% 
+  lm(gwage33 ~ height33) %>% 
+  tidy() %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+
+### (e)
+
+```{r part_e}
+height_wage %>%
+  filter(gwage33 < 400 & height33 > 40) %>% 
+  top_n(800) %$% 
+  lm(gwage33 ~ height33) %>% 
+  tidy() %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+```
+

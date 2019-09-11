@@ -1,0 +1,197 @@
+---
+title: "Chapter 3 Exercise 2"
+author: "Carilli"
+date: '`r format(Sys.Date(), "%Y-%B-%d")`'
+output:
+  html_document: 
+    highlight: tango
+    theme: cerulean
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      options(scipen = 999,
+                              digits = 3))
+require(tidyverse)
+```
+
+## Program Monte Carlo OLS Simulation  
+
+The population regression function is $Salary = 10,000 + 1,000Education + \epsilon$
+Set $\beta_0$ to 10,000 and $\beta_1$ to 1,000.
+
+```{r paramaters}
+beta_0 <-10000 # set intercept
+beta_1 <- 1000 # set slope
+n <- 100 # set sample size
+N <- 100 # set number of simulations
+```
+
+### Simulate 100 draws from the Population regression function
+
+```{r}
+results_100 <- tibble(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 10000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  ols <- lm(y ~ x)
+  results_100[i,] <-coef(ols)
+}
+```
+
+###(a) 
+
+```{r part_a}
+results_100 %>% 
+  ggplot(aes(x = beta_1)) + 
+  geom_histogram(binwidth = 50)
+
+results_100 %>% 
+  ggplot(aes(x = beta_1)) +
+  geom_density()
+
+results_100 %>% 
+  ggplot(aes(y = beta_1)) +
+  geom_boxplot()
+```
+
+### (b)
+
+```{r part_b}
+results_100 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+```
+
+### (c)
+
+```{r part_c}
+n <- 1000
+results_1000 <- tibble(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 10000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  ols <- lm(y ~ x)
+  results_1000[i,] <-coef(ols)
+}
+results_1000 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+```
+
+```{r part_c_comparison}
+results_100 %>% 
+  bind_rows(results_1000, .id = "simulation") %>% 
+  ggplot(aes(x = simulation, y = beta_1)) + 
+  geom_boxplot()
+```
+
+### (d)
+
+```{r part_d}
+n <- 20
+results_20 <- tibble(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 10000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  ols <- lm(y ~ x)
+  results_20[i,] <-coef(ols)
+}
+results_20 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+```
+
+```{r part_d_comparisons}
+results_20 %>% 
+  bind_rows(results_100, .id = "simulation") %>% 
+  ggplot(aes(x = simulation, y = beta_1)) + 
+  geom_boxplot()
+```
+
+### (e)
+
+```{r part_e}
+results_100_sd_500 <- tibble(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 500) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  ols <- lm(y ~ x)
+  results_100_sd_500[i,] <-coef(ols)
+}
+
+results_100_sd_500 %>% 
+  bind_rows(results_1000, .id = "simulation") %>% 
+  ggplot(aes(x = simulation, y = beta_1)) + 
+  geom_boxplot()
+
+results_100_sd_500 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+```
+
+```{r part_f}
+results_100_sd_50000 <- tibble(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 50000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  ols <- lm(y ~ x)
+  results_100_sd_50000[i,] <-coef(ols)
+}
+
+results_100_sd_50000 %>% 
+  bind_rows(results_1000, .id = "simulation") %>% 
+  ggplot(aes(x = simulation, y = beta_1)) + 
+  geom_boxplot()
+
+results_100_sd_500 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+```
+
+### (g)
+
+```{r part_g}
+N <- 500
+results_100_500 <- tibble(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 10000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  ols <- lm(y ~ x)
+  results_100_500[i,] <-coef(ols)
+}
+
+results_100_500 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+
+results_100_500 %>% 
+  ggplot(aes(x = beta_1)) +
+  geom_density()
+```

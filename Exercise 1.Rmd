@@ -1,31 +1,33 @@
 ---
 title: "Exercise 1"
 author: "Carilli"
-date: '`r format(Sys.Date(), "%Y-%B-%d")`'
+date: '`r format(lubridate::today(), "%Y-%B-%d")`'
 output: 
   html_document:
     theme: cerulean
     highlight: tango
+    df_print: paged
+    code_folding: hide
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, comment = NA, warning = FALSE, message = FALSE,
+knitr::opts_chunk$set(echo = TRUE, comment = NA, warning = FALSE, 
+                      message = FALSE,
                       options(digits = 3, scipen = 999))
-require(tidyverse)
-require(readr)
-require(janitor)
-require(broom)
-require(ggthemes)
-require(magrittr)
-require(ggrepel)
-require(kableExtra)
+library(tidyverse)
+library(ggthemes)
+library(ggrepel)
 ```
 
 ```{r data}
-pres_vote <- read_csv("PresVote.csv")
+pres_vote <- 
+  here::here("data", "PresVote.csv") %>% 
+  read_csv()
 ```
 
-### (a)
+# Exercise 1 {.tabset}
+
+## (a)
 
 ```{r part_a}
 pres_vote %>%
@@ -33,70 +35,60 @@ pres_vote %>%
   geom_point() +
   labs(x = "Percent Change in Income",
        y = "Incumbent party's vote percent", 
-       caption = "Figure 3.1: Relationship between Income Growth and Vote fore the Incumbent President's Party.") +
+       caption = "Figure 3.1: Relationship between Income Growth and Vote for the Incumbent President's Party.") +
   geom_smooth(method = "lm", se = FALSE) +
   theme(axis.line = element_line(),
         panel.background = element_blank()) +
   geom_text_repel()
 ```
 
-### (b)
+## (b)
 
 ```{r part_b}
-pres_vote %$% 
-  lm(vote ~ rdi4) %>% 
-  tidy() %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+pres_vote %>% 
+  lm(vote ~ rdi4, .) %>% 
+  jtools::summ()
 ```
 
-### (c)
+## (c)
 
-```{r part_C}
-pres_vote %$% 
-  lm(vote ~ rdi4) %>% 
-  augment() %>% 
+```{r part_c}
+pres_vote %>% 
+  lm(vote ~ rdi4, .) %>% 
+  broom::augment() %>% 
   select(.fitted) %>% 
   mutate(year = pres_vote$year) %>% 
   filter(year %in% c(1996, 1972) )%>% 
-  select(year, .fitted) %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  select(year, .fitted)
 ```
 
-### (d)
+## (d)
 
-```{r}
+```{r part_d}
 pres_vote %$% 
   lm(vote ~ rdi4) %>% 
-  augment() %>% 
+  broom::augment() %>% 
   select(.resid) %>% 
   mutate(year = pres_vote$year) %>% 
   filter(year %in% c(1996, 1972)) %>% 
-  select(year, .resid) %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  select(year, .resid) 
 ```
 
-### (e) 
+## (e) 
 
 ```{r part_e}
 pres_vote %>% 
-  filter(reelection == 1) %$% 
-  lm(vote ~ rdi4) %>% 
-  tidy() %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  filter(reelection == 1) %>% 
+  lm(vote ~ rdi4, .) %>% 
+  jtools::summ()
 ```
 
-### (f)
+## (f)
 
 ```{r part_f}
 pres_vote %>% 
   filter(reelection == 0) %$% 
   lm(vote ~ rdi4) %>% 
-  tidy() %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  jtools::summ()
 ```
 

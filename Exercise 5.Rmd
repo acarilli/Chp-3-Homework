@@ -11,22 +11,19 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, comment = NA, warning = FALSE, message = FALSE,
                       options(digits = 3, scipen = 999))
-require(tidyverse)
-require(readr)
-require(janitor)
-require(broom)
-require(ggthemes)
-require(magrittr)
-require(kableExtra)
+library(tidyverse)
 ```
 
 ```{r data}
-divorce_men <- read_csv("DivorceMen.csv") %>% 
-  clean_names(case = "snake")
-divorce_women <- read_csv("DivorceWomen.csv") %>% 
-  clean_names(case = "snake")
-divorce <- divorce_men %>% 
-  bind_rows(divorce_women)
+divorce <- 
+here::here("data", "DivorceMen.csv") %>% 
+  read_csv() %>% 
+  janitor::clean_names() %>% 
+  bind_rows(
+    here::here("data", "DivorceWomen.csv") %>% 
+  read_csv() %>% 
+  janitor::clean_names()
+    )
 ```
 
 ### (a)
@@ -38,7 +35,7 @@ divorce %>%
   ylab("Yearly labor hours for gender") +
   xlab("Average effective tax rate") +
   scale_color_discrete(labels = c("Women", "Men")) +
-  facet_grid(~ as.factor(male)) + 
+  facet_wrap(~ as.factor(male)) + 
   theme(legend.title = element_blank(), 
         strip.text.x = element_blank())
 ```
@@ -47,53 +44,39 @@ divorce %>%
 ### (b)
 
 ```{r part_b}
-# estimate the equation for men
-
-divorce_men %$% 
-  lm(gender_hours ~ tax_rate) %>% 
-  tidy() %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% 
-  # first and fifth columns blank span title over middle 3 columns
-  add_header_above(c(" ", "Regression Results for Men" = 3, " "))
-
-# estimate the equation for women
-
-divorce_women %$% 
-  lm(gender_hours ~ tax_rate) %>% 
-  tidy() %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% 
-  # first and fifth columns blank span title over middle 3 columns
-  add_header_above(c(" ", "Regression Results for Women" = 3, " ")) 
+jtools::export_summs(
+  divorce %>% 
+    filter(male == 0) %>% 
+    lm(gender_hours ~ tax_rate, .),
+  divorce %>% 
+    filter(male == 1) %>% 
+    lm(gender_hours ~ tax_rate, .),
+  model.names = c("Women", "Men")
+)
 ```
 
 ### (c)
 
 ```{r part_c}
-divorce_men %$% 
-  lm(gender_hours ~ tax_rate) %>% 
-  augment() %>%
-  mutate(country = divorce_men$country) %>%
+divorce %>% 
+  filter(male == 1) %>% 
+  lm(gender_hours ~ tax_rate, .) %>% 
+  broom::augment() %>% 
+  mutate(country = divorce$country[divorce$male==1]) %>% 
   filter(country == "United States") %>% 
-  select(.fitted, .resid) %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% 
-  add_header_above(c("American Men" = 2))
+  select(country, .fitted, .resid)
 ```
 
 ### (d)
 
 ```{r part_d}
-divorce_women %$% 
-  lm(gender_hours ~ tax_rate) %>% 
-  augment() %>%
-  mutate(country = divorce_women$country) %>%
+divorce %>% 
+  filter(male == 0) %>% 
+  lm(gender_hours ~ tax_rate, .) %>% 
+  broom::augment() %>% 
+  mutate(country = divorce$country[divorce$male==1]) %>% 
   filter(country == "Italy") %>% 
-  select(.fitted, .resid) %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left") %>% 
-  add_header_above(c("Italian Women" = 2))
+  select(country, .fitted, .resid)
 ```
 
 

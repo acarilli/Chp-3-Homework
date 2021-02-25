@@ -32,11 +32,11 @@ pres_vote <-
 ### a
 
 ```{r 1a, message=FALSE}
-pres_vote %>% 
-   ggplot(aes(x = rdi4, y = vote, label = year)) +
+pres_vote %>%
+  ggplot(aes(x = rdi4, y = vote, label = year)) +
   geom_point() +
   labs(x = "Percent Change in Income",
-       y = "Incumbent party's vote percent", 
+       y = "Incumbent party's vote percent",
        caption = "Figure 3.1: Relationship between Income Growth and Vote fore the Incumbent President's Party.") +
   geom_smooth(method = "lm", se = FALSE) +
   theme(axis.line = element_line(),
@@ -497,9 +497,14 @@ here::here("data", "DivorceMen.csv") %>%
 
 ```{r 5a}
 divorce %>% 
-  ggplot(aes(x = tax_rate, y = gender_hours)) + 
-  geom_point() + 
-  facet_wrap(~ male)
+  ggplot(aes(x = tax_rate, y = gender_hours, color = as.factor(male))) + 
+  geom_point() +
+  ylab("Yearly labor hours for gender") +
+  xlab("Average effective tax rate") +
+  scale_color_discrete(labels = c("Women", "Men")) +
+  facet_wrap(~ as.factor(male)) + 
+  theme(legend.title = element_blank(), 
+        strip.text.x = element_blank())
 ```
 
 ### b

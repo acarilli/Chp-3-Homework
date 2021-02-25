@@ -1,7 +1,7 @@
 ---
 title: "Exercise 3"
 author: "Carilli"
-date: '`r format(Sys.Date(), "%Y-%B-%d")`'
+date: '`r format(lubridate::today(), "%Y-%B-%d")`'
 output: 
   html_document:
     theme: cerulean
@@ -9,29 +9,24 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, comment = NA, warning = FALSE, message = FALSE,
+knitr::opts_chunk$set(echo = TRUE, comment = NA, warning = FALSE, 
+                      message = FALSE,
                       options(digits = 3, scipen = 999))
-require(tidyverse)
-require(readr)
-require(janitor)
-require(broom)
-require(ggthemes)
-require(magrittr)
-require(kableExtra)
+library(tidyverse)
 ```
 
 ```{r data}
-height_wage <- read_csv("heightwage_british_males.csv")
+height_wage <- 
+  here::here("data", "heightwage_british_males.csv") %>% 
+  read_csv()
 ```
 
 ### (a)
 
 ```{r part_a}
-height_wage %$% 
-  lm(gwage33 ~ height33) %>% 
-  tidy() %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+height_wage %>% 
+  lm(gwage33 ~ height33, .) %>% 
+  jtools::summ()
 ```
 
 
@@ -61,12 +56,14 @@ height_wage %>%
 ### (d)
 
 ```{r part_d}
-height_wage %>%
-  filter(gwage33 < 400 & height33 > 40) %$% 
-  lm(gwage33 ~ height33) %>% 
-  tidy() %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+jtools::export_summs(
+  height_wage %>% 
+  lm(gwage33 ~ height33, .), 
+  height_wage %>% 
+  filter(gwage33 <= 400, height33 > 40) %>%
+  lm(gwage33 ~ height33, .),
+  model.names = c("Part (a)", "Part (b)")
+)
 ```
 
 ### (e)
@@ -74,10 +71,8 @@ height_wage %>%
 ```{r part_e}
 height_wage %>%
   filter(gwage33 < 400 & height33 > 40) %>% 
-  top_n(800) %$% 
-  lm(gwage33 ~ height33) %>% 
-  tidy() %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = "striped", full_width = F, position = "left")
+  top_n(800) %>% 
+  lm(gwage33 ~ height33, data = .) %>% 
+  jtools::summ()
 ```
 

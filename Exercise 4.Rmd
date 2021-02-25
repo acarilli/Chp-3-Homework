@@ -96,4 +96,3 @@ divorce_women %$%
   add_header_above(c("Spanish Women" = 2))
 ```
 
-

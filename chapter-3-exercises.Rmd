@@ -1,0 +1,543 @@
+---
+title: "Chapter 3"
+author: "Carilli"
+date: '`r format(lubridate::today(), "%B %d, %Y")`'
+output: 
+  html_document:
+    df_print: paged
+    code_folding: hide
+    toc: false
+    toc_float: false
+    theme: cerulean
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA,
+                      options(digits = 3, scipen = 999))
+library(tidyverse)
+    
+```
+
+# Exercises {.tabset}
+
+## 1 {.tabset}
+
+```{r 1-data, message=FALSE}
+pres_vote <-
+  here::here("data", "PresVote.csv") %>% 
+  read_csv()
+```
+
+### a
+
+```{r 1a, message=FALSE}
+pres_vote %>% 
+   ggplot(aes(x = rdi4, y = vote, label = year)) +
+  geom_point() +
+  labs(x = "Percent Change in Income",
+       y = "Incumbent party's vote percent", 
+       caption = "Figure 3.1: Relationship between Income Growth and Vote fore the Incumbent President's Party.") +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme(axis.line = element_line(),
+        panel.background = element_blank()) +
+  ggrepel::geom_text_repel()
+```
+
+### b
+
+```{r 1b}
+pres_vote %$% 
+  lm(vote ~ rdi4) %>%
+  jtools::summ()
+```
+
+### c
+
+```{r 1c}
+pres_vote %>% 
+  lm(vote ~ rdi4, .) %>% 
+  broom::augment() %>% 
+  mutate(year = pres_vote$year) %>% 
+  filter(year %in% c(1996, 1972)) %>% 
+  select(year, .fitted)
+  
+```
+
+### d
+
+```{r 1d}
+pres_vote %>% 
+  lm(vote ~ rdi4, .) %>% 
+  broom::augment() %>% 
+  mutate(year = pres_vote$year) %>% 
+  filter(year %in% c(1996, 1972)) %>% 
+  select(year, .resid)
+```
+
+### e
+
+```{r 1e}
+pres_vote %>% 
+  filter(reelection == 1) %>% 
+  lm(vote ~ rdi4, .) %>% 
+  jtools::summ()
+
+```
+
+### f
+
+```{r 1f}
+pres_vote %>% 
+  filter(reelection == 0) %>% 
+  lm(vote ~ rdi4, .) %>% 
+  jtools::summ()
+```
+
+
+
+## 2 {.tabset}
+
+### Program Monte Carlo OLS Simulation {.tabset}
+
+The population regression function is $Salary = 10,000 + 1,000Education + \epsilon$  
+Set $\beta_0$ to 10,000 and $\beta_1$ to 1,000.
+
+```{r paramters}
+beta_0 <-10000 # set intercept
+beta_1 <- 1000 # set slope
+n <- 100 # set sample size
+N <- 100 # set number of simulations
+```
+
+#### Simulate 100 draws from the Population Regression Function
+
+$Salary_i = \beta_0 + \beta_1 Education_i + \epsilon_i$
+
+```{r monte-carlo}
+results_100 <- data.frame(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 10000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  lm(y ~ x) %>% # estimate the model
+    broom::tidy() %>% # retrieve the coefficients
+    pull(estimate) -> # save the estimates to the data frame
+    results_100[i,] 
+}
+```
+
+### a 
+
+```{r 2a}
+results_100 %>% 
+  ggplot(aes(x = beta_1)) + 
+  geom_histogram(binwidth = 50)
+
+results_100 %>% 
+  ggplot(aes(x = beta_1)) +
+  geom_density()
+
+results_100 %>% 
+  ggplot(aes(y = beta_1)) +
+  geom_boxplot()
+```
+
+### b
+
+```{r 2b}
+results_100 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+```
+
+### c {.tabset}
+
+#### Simulation with sample size 1000.
+
+```{r 2c-monte-carlo}
+beta_0 <-10000 # set intercept
+beta_1 <- 1000 # set slope
+n <- 1000 # set sample size
+N <- 100 # set number of simulations
+
+results_1000 <- data.frame(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 10000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  lm(y ~ x) %>% # estimate the model
+    broom::tidy() %>% # retrieve the coefficients
+    pull(estimate) -> # save the estimates to the data frame
+    results_1000[i,] 
+}
+```
+
+#### Comparisons to simulation above
+
+```{r 2comp}
+results_1000 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+
+results_100 %>% 
+  bind_rows(results_1000, .id = "simulation")  %>%  
+  ggplot(aes(x = simulation, y = beta_1)) + 
+  geom_boxplot()
+```
+
+### d {.tabset}
+
+#### Simulation with sample size 20.
+
+```{r d-monte-carlo}
+beta_0 <-10000 # set intercept
+beta_1 <- 1000 # set slope
+n <- 20 # set sample size
+N <- 100 # set number of simulations
+
+results_20 <- data.frame(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 10000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  lm(y ~ x) %>% # estimate the model
+    broom::tidy() %>% # retrieve the coefficients
+    pull(estimate) -> # save the estimates to the data frame
+    results_20[i,] 
+}
+```
+
+#### Comparisons to simulation above
+
+```{r 2d}
+results_20 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+
+results_100 %>% 
+  bind_rows(results_20, .id = "simulation")  %>%  
+  ggplot(aes(x = simulation, y = beta_1)) + 
+  geom_boxplot()
+```
+
+### e {.tabset}
+
+#### Simulation with sd = 500.
+
+```{r e-monte-carlo}
+beta_0 <-10000 # set intercept
+beta_1 <- 1000 # set slope
+n <- 100 # set sample size
+N <- 100 # set number of simulations
+
+results_sd_500 <- data.frame(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 500) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  lm(y ~ x) %>% # estimate the model
+    broom::tidy() %>% # retrieve the coefficients
+    pull(estimate) -> # save the estimates to the data frame
+    results_sd_500[i,] 
+}
+```
+
+#### Comparisons to original simulation 
+
+```{r 2e}
+results_sd_500 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+
+results_100 %>% 
+  bind_rows(results_sd_500, .id = "simulation")  %>%  
+  ggplot(aes(x = simulation, y = beta_1)) + 
+  geom_boxplot()
+```
+
+### f {.tabset}
+
+#### Simulation with sd = 50,000.
+
+```{r f-monte-carlo}
+beta_0 <-10000 # set intercept
+beta_1 <- 1000 # set slope
+n <- 100 # set sample size
+N <- 100 # set number of simulations
+
+results_sd_50000 <- data.frame(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 50000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  lm(y ~ x) %>% # estimate the model
+    broom::tidy() %>% # retrieve the coefficients
+    pull(estimate) -> # save the estimates to the data frame
+    results_sd_50000[i,] 
+}
+```
+
+#### Comparisons to original simulation 
+
+```{r 2f}
+results_sd_50000 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+
+results_100 %>% 
+  bind_rows(results_sd_50000, .id = "simulation")  %>%  
+  ggplot(aes(x = simulation, y = beta_1)) + 
+  geom_boxplot()
+```
+
+### g 
+
+```{r 1g}
+N <- 500
+results_100_500 <- data.frame(beta_0 = numeric(), # create a data frame to store the results
+                 beta_1 = numeric())
+for (i in 1:N){
+  x <- sample(0:16, size = n, replace = T) # choose values for x
+  e <- rnorm(n, 0, 10000) # generate random errors
+  y <- beta_0 + beta_1 * x + e # generate values of y based on the parameter values
+  ols <- lm(y ~ x)
+  results_100_500[i,] <-coef(ols)
+}
+
+results_100_500 %>% 
+  select(beta_1) %>% 
+  summarize(beta_1_hat = mean(beta_1),
+            minimum = min(beta_1),
+            maximum = max(beta_1))
+
+results_100_500 %>% 
+  ggplot(aes(x = beta_1)) +
+  geom_density()
+```
+
+### All Densities
+
+```{r all-dens}
+results_100 %>% 
+  bind_rows(list(results_1000, results_20,
+            results_sd_500,results_sd_50000,
+            results_100_500), .id = "simulation") %>% 
+  ggplot(aes(x = beta_1)) +
+  geom_density() + 
+  facet_wrap(~ simulation, scales = "free_y")
+  
+
+
+```
+
+
+
+## 3 {.tabset}
+
+```{r 3data, message=FALSE}
+height_wage <- 
+  here::here("data", "heightwage_british_males.csv") %>% 
+  read_csv()
+```
+
+### a
+
+```{r 3a}
+height_wage %>% 
+  lm(gwage33 ~ height33, .) %>% 
+  jtools::summ()
+```
+
+### b
+
+```{r 3b}
+height_wage %>% 
+  ggplot(aes(x = height33, y = gwage33)) + 
+  geom_rect(aes(ymin = 400, ymax = 2600, xmin = 65, xmax = 75), fill = "grey") +
+  geom_rect(aes(ymin = 0, ymax = 100, xmin = 20, xmax = 36), fill = "grey") +
+  geom_point() 
+```
+
+### c
+
+```{r 3c}
+height_wage %>% 
+  filter(gwage33 <= 400, height33 > 40) %>%  
+  ggplot(aes(y = gwage33, x = height33)) +
+  geom_jitter(alpha = .3)
+
+```
+
+### d
+
+```{r 3d}
+jtools::export_summs(
+  height_wage %>% 
+  lm(gwage33 ~ height33, .), 
+  height_wage %>% 
+  filter(gwage33 <= 400, height33 > 40) %>%
+  lm(gwage33 ~ height33, .),
+  model.names = c("Part (a)", "Part (b)")
+)
+```
+
+
+### e 
+
+```{r}
+jtools::export_summs(
+  height_wage %>%
+    lm(gwage33 ~ height33, .),
+  height_wage %>%
+    slice(1:800) %>%
+    lm(gwage33 ~ height33, .)
+)
+```
+
+
+
+## 4 {.tabset}
+
+```{r 4data, message=FALSE}
+divorce <- 
+here::here("data", "DivorceMen.csv") %>% 
+  read_csv() %>% 
+  janitor::clean_names() %>% 
+  bind_rows(
+    here::here("data", "DivorceWomen.csv") %>% 
+  read_csv() %>% 
+  janitor::clean_names()
+    )
+```
+
+### a
+
+```{r 4a, message=FALSE}
+divorce %>% 
+  ggplot(aes(x = gender_hours, y = divorce_rate, color = as.factor(male))) + 
+  geom_point() +
+  xlab("Yearly labor hours for gender") +
+  ylab("Divorce rate per thousand") +
+  scale_color_discrete(labels = c("Women", "Men")) +
+  facet_grid(~ as.factor(male), scales = "free") + 
+  theme(legend.title = element_blank(), 
+        strip.text.x = element_blank())
+```
+
+### b
+
+```{r 4b}
+jtools::export_summs(
+  divorce %>% 
+  filter(male == 1) %>% 
+  lm(divorce_rate ~ gender_hours, .),
+  divorce %>% 
+  filter(male == 0) %>% 
+  lm(divorce_rate ~ gender_hours, .),
+  model.names = c("Male Model", "Female Model"),
+  digits = 5
+  )
+```
+
+### c
+
+```{r 4c}
+divorce %>% 
+  filter(male == 1) %>% 
+  lm(divorce_rate ~ gender_hours, .) %>% 
+  broom::augment() %>% 
+  mutate(country = divorce$country[divorce$male==1]) %>% 
+  filter(country == "Germany") %>% 
+  select(country, .fitted, .resid)
+```
+
+### d
+
+```{r 4d}
+divorce %>% 
+  filter(male == 0) %>% 
+  lm(divorce_rate ~ gender_hours, .) %>% 
+  broom::augment() %>% 
+  mutate(country = divorce$country[divorce$male==0]) %>% 
+  filter(country == "Spain") %>% 
+  select(country, .fitted, .resid)
+```
+
+## 5 {.tabset}
+
+```{r 5data, message=FALSE}
+divorce <- 
+here::here("data", "DivorceMen.csv") %>% 
+  read_csv() %>% 
+  janitor::clean_names() %>% 
+  bind_rows(
+    here::here("data", "DivorceWomen.csv") %>% 
+  read_csv() %>% 
+  janitor::clean_names()
+    )
+```
+
+### a
+
+```{r 5a}
+divorce %>% 
+  ggplot(aes(x = tax_rate, y = gender_hours)) + 
+  geom_point() + 
+  facet_wrap(~ male)
+```
+
+### b
+
+```{r 5b}
+jtools::export_summs(
+  divorce %>% 
+    filter(male == 0) %>% 
+    lm(gender_hours ~ tax_rate, .),
+  divorce %>% 
+    filter(male == 1) %>% 
+    lm(gender_hours ~ tax_rate, .),
+  model.names = c("Women", "Men")
+)
+
+```
+
+### c
+
+```{r 5c}
+divorce %>% 
+  filter(male == 1) %>% 
+  lm(gender_hours ~ tax_rate, .) %>% 
+  broom::augment() %>% 
+  mutate(country = divorce$country[divorce$male==1]) %>% 
+  filter(country == "United States") %>% 
+  select(country, .fitted, .resid)
+```
+
+### d
+
+```{r 5d}
+divorce %>% 
+  filter(male == 0) %>% 
+  lm(gender_hours ~ tax_rate, .) %>% 
+  broom::augment() %>% 
+  mutate(country = divorce$country[divorce$male==1]) %>% 
+  filter(country == "Italy") %>% 
+  select(country, .fitted, .resid)
+```
+
